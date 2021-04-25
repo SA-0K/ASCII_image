@@ -1,91 +1,64 @@
-from PIL import Image, ImageDraw
-m = Image.open("image redarctor/a.jpg").convert('LA')
-# m.load()
+from PIL import Image
 
-xz = 9
-yz = 24
+filename = "a.jpg"
 
-# palette = [[255, 255, 255], [0, 0, 255], [255, 0, 0], [255, 0, 255],
-#           [0, 255, 0], [0, 255, 255], [255, 255, 0], [0, 0, 0]]
-global h
-h = 0
+m = Image.open(f"imageRedarctor/{filename}").convert('LA')
+f = open("imageRedarctor/Result.txt", "w")
+
+final_x_resolution = 9
+final_y_resolution = int(2.66 * final_x_resolution)  # any value
+contrast = .1
+
 ascii = ['.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@']
-f = open("image redarctor/Result.txt", "w")
 
 
-def recognize(stepx, stepy):  # 349 2
-    # 4x4
-    global tup
-    a = []  # 16
-    y = 0 + (yz*stepy)  # 2
-    x = 0 + (xz*stepx)  # 349
-    tup = []
-    r1 = 0
-    b1 = 0
-    c1 = 0
-    #print("Position", 4*stepx, ':', 4*stepx+4, 4*stepy, ':', 4*stepy+4)
-    for i in range(0, xz*yz):
-        b = rgb_i.getpixel((x, y))
-        a.append(b)
+def brightness_determination(stepx, stepy):
 
-        if x > (3 + (xz*stepx)):
+    y = final_y_resolution*stepy
+    x = final_x_resolution*stepx
+    brightness_sum = 0
+
+    for i in range(0, final_x_resolution * final_y_resolution):
+        #      (3 or final_x_resolution + ...
+        if x > (final_x_resolution + (final_x_resolution * stepx)):
             y += 1
             x = 0
-        r1 += int(a[i][0])
-        b1 += int(a[i][1])
-        c1 += int(a[i][2])
+        # add brightness of red colour (R,g,b) to brightness_sum
+        brightness_sum += rgb_i.getpixel((x, y))[0]
 
-    tup.append(r1//(xz*yz))
-    tup.append(b1//(xz*yz))
-    tup.append(c1//(xz*yz))
-    # print(tup)
+    return (brightness_sum // (final_x_resolution * final_y_resolution))
 
 
-def draw_(cvb):
+def draw_():
 
-    j = 0
-    yy = 0
-    for i in range(0,  res_xs * res_ys):
-        if j == res_xs:
-
-            yy += 1
-            j = 0
+    stepx = 0
+    stepy = 0
+    for i in range(0,  resolution_x * resolution_y):
+        if stepx == resolution_x:
+            stepy += 1
+            stepx = 0
             f.write('\n')
-        recognize(j, yy)
 
-        res_img.putpixel(
-            (j, yy), (tup[0], tup[1], tup[2]))
-        ascii_check(cvb)
-        j += 1
+        # determinate average brightness of a group of pixels
+        ascii_check(brightness_determination(stepx, stepy))
+        stepx += 1
 
 
-def ascii_check(cvb):
-    global h
-    avg = (tup[0]+tup[1] + tup[2])/cvb
-    symbol = int((avg // len(ascii))//1.85)
-    if symbol > 11:
-        symbol = 11
+def ascii_check(brightness):
+    avg = brightness/contrast
+    symbol_number = int((avg // len(ascii))//1.85)  # convert [0;255] to [0;11]
+    if symbol_number > len(ascii)-1:
+        symbol_number = len(ascii)-1
 
-    f.write(ascii[symbol])
-    h += 1
-
-    # print(ascii[symbol])
+    f.write(ascii[symbol_number])
 
 
-or_xs = m.size[0]
-or_ys = m.size[1]
+resolution_x = m.size[0] // final_x_resolution
+resolution_y = m.size[1] // final_y_resolution
 
-res_xs = or_xs // xz
-res_ys = or_ys // yz
-
-res_img = Image.new("RGB", (res_xs, res_ys))
-
+res_img = Image.new("RGB", (resolution_x, resolution_y))
 rgb_i = m.convert("RGB")
 
 
-draw_(5)
-
-
-res_img.save("image redarctor/result.png")
+draw_()
 f.close()
-print(h)
